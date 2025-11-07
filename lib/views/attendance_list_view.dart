@@ -17,12 +17,10 @@ class _AttendanceListViewState extends State<AttendanceListView> {
   int? selectedRoomId;
 
   Future<List<Map<String, dynamic>>> fetchAttendance(int? roomId) async {
-    // mulai query dasar
     final queryBase = supabase.client
         .from('attendance_today_by_room')
         .select('*');
 
-    // siapkan hasil
     dynamic response;
 
     if (roomId != null) {
@@ -111,24 +109,42 @@ class _AttendanceListViewState extends State<AttendanceListView> {
                     itemCount: data.length,
                     itemBuilder: (context, index) {
                       final item = data[index];
+                      final no = index + 1;
+
                       return Card(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 6,
                         ),
+                        elevation: 2,
                         child: ListTile(
-                          leading: const Icon(Icons.person),
-                          title: Text(item['student_name'] ?? '-'),
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.blue.shade100,
+                            child: Text(
+                              no.toString(),
+                              style: const TextStyle(
+                                color: Colors.black87,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            item['student_name'] ?? '-',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
                           subtitle: Text(
                             'Kelas: ${item['class_name'] ?? '-'}\nRuangan: ${item['room_name'] ?? '-'}',
+                            style: const TextStyle(fontSize: 13),
                           ),
-
                           trailing: Text(
                             (item['created_at'] ?? '').toString().substring(
                               11,
                               16,
                             ),
-                            style: const TextStyle(color: Colors.grey),
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       );
