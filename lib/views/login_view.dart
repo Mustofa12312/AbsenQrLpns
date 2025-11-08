@@ -85,9 +85,9 @@ class _LoginViewState extends State<LoginView>
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Color(0xFF74ABE2), // soft sky blue
-                  Color(0xFF5563DE), // iOS blue purple
-                  Color(0xFFB983FF), // soft pink-lavender
+                  Color(0xFF0F2027), // soft sky blue
+                  Color(0xFF203A43), // iOS blue purple
+                  Color(0xFF2C5364), // soft pink-lavender
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,

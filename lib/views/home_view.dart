@@ -94,9 +94,9 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Color(0xFF74ABE2), // soft blue
-                  Color(0xFF5563DE), // muted indigo
-                  Color(0xFF9FACE6), // lavender blue
+                  Color(0xFF0F2027), // soft blue
+                  Color(0xFF203A43), // muted indigo
+                  Color(0xFF2C5364), // lavender blue
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
