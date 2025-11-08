@@ -1,24 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'bindings/initial_binding.dart';
+
+import 'controllers/nav_provider.dart';
+import 'controllers/room_controller.dart';
+import 'providers/summary_provider.dart';
+import 'services/supabase_service.dart';
+import 'views/main_view.dart';
 import 'views/login_view.dart';
-import 'views/home_view.dart';
-import 'app_routes.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // ✅ Inisialisasi Supabase
   await Supabase.initialize(
-    url: 'https://svosrxzprmyjsruomofm.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2b3NyeHpwcm15anNydW9tb2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzMDI1MDcsImV4cCI6MjA3Njg3ODUwN30.ylkvAzZ03D_gvOK_sbO9YH15GeX5HMl-xNIODx5su14',
+    url: SupabaseService.supabaseUrl,
+    anonKey: SupabaseService.supabaseAnonKey,
   );
 
-  // 🧹 Hapus session supaya user harus login ulang setiap kali app dibuka
-  await Supabase.instance.client.auth.signOut();
+  // ✅ Inisialisasi locale Indonesia
+  await initializeDateFormatting('id_ID', null);
 
-  runApp(const MyApp());
+  // ✅ Register controller untuk GetX
+  Get.put(RoomController());
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SummaryProvider()),
+        ChangeNotifierProvider(create: (_) => NavProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -26,16 +42,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Ambil session saat ini
+    final session = Supabase.instance.client.auth.currentSession;
+
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      initialBinding: InitialBinding(),
-      // Langsung arahkan ke halaman login setiap kali app dijalankan
-      initialRoute: '/login',
-      getPages: [
-        GetPage(name: '/login', page: () => const LoginView()),
-        GetPage(name: '/home', page: () => HomeView()),
-        ...AppRoutes.pages,
-      ],
+      title: 'Absensi Sekolah',
+      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
+      // Jika belum login → LoginView, jika sudah login → MainView
+      home: session == null ? const LoginView() : const MainView(),
     );
   }
 }
