@@ -17,12 +17,11 @@ class ScanView extends StatefulWidget {
 class _ScanViewState extends State<ScanView>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final ScanController scanCtrl = Get.put(ScanController());
-  final RoomController roomCtrl = Get.put(RoomController());
+  final RoomController roomCtrl = Get.find<RoomController>();
 
   final MobileScannerController _cameraController = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
     facing: CameraFacing.back,
-    returnImage: false,
   );
 
   bool _isCameraReady = false;
@@ -36,7 +35,7 @@ class _ScanViewState extends State<ScanView>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _checkCameraPermission();
+    _requestCameraPermission();
 
     _animCtrl = AnimationController(
       vsync: this,
@@ -51,14 +50,14 @@ class _ScanViewState extends State<ScanView>
     WidgetsBinding.instance.addPostFrameCallback((_) => _animCtrl.forward());
   }
 
-  Future<void> _checkCameraPermission() async {
+  Future<void> _requestCameraPermission() async {
     final status = await Permission.camera.request();
     if (status.isGranted) {
       setState(() => _isCameraReady = true);
     } else {
       Get.snackbar(
         'Izin Kamera Diperlukan',
-        'Silakan aktifkan akses kamera di pengaturan aplikasi.',
+        'Aktifkan izin kamera di pengaturan aplikasi agar bisa melakukan scan.',
         backgroundColor: Colors.redAccent.withOpacity(0.8),
         colorText: Colors.white,
       );
@@ -87,24 +86,6 @@ class _ScanViewState extends State<ScanView>
       default:
         break;
     }
-  }
-
-  void _showRoomWarning() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Pilih Ruangan Dulu'),
-        content: const Text(
-          'Silakan pilih ruangan sebelum melakukan scan QR Code.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -139,17 +120,19 @@ class _ScanViewState extends State<ScanView>
       ),
       body: Container(
         decoration: const BoxDecoration(gradient: gradientBG),
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: ScaleTransition(
-            scale: _scaleAnim,
-            child: !_isCameraReady
-                ? const Center(
-                    child: CircularProgressIndicator(color: Colors.cyanAccent),
-                  )
-                : Column(
+        child: !_isCameraReady
+            ? const Center(
+                child: CircularProgressIndicator(color: Colors.cyanAccent),
+              )
+            : FadeTransition(
+                opacity: _fadeAnim,
+                child: ScaleTransition(
+                  scale: _scaleAnim,
+                  child: Column(
                     children: [
                       const SizedBox(height: 100),
+
+                      /// === DROPDOWN RUANGAN ===
                       Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Obx(() {
@@ -159,6 +142,7 @@ class _ScanViewState extends State<ScanView>
                               child: Center(child: CircularProgressIndicator()),
                             );
                           }
+
                           return ClipRRect(
                             borderRadius: BorderRadius.circular(16),
                             child: BackdropFilter(
@@ -170,23 +154,12 @@ class _ScanViewState extends State<ScanView>
                                     color: Colors.white.withOpacity(0.15),
                                   ),
                                   borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.cyanAccent.withOpacity(
-                                        0.15,
-                                      ),
-                                      blurRadius: 25,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
                                 ),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 12,
                                 ),
                                 child: DropdownButtonFormField<int>(
-                                  value: roomCtrl.selectedRoomId.value == 0
-                                      ? null
-                                      : roomCtrl.selectedRoomId.value,
+                                  value: roomCtrl.selectedRoomId.value,
                                   dropdownColor: Colors.black.withOpacity(0.6),
                                   style: GoogleFonts.poppins(
                                     color: Colors.white,
@@ -199,21 +172,28 @@ class _ScanViewState extends State<ScanView>
                                     border: InputBorder.none,
                                   ),
                                   iconEnabledColor: Colors.white70,
-                                  items: roomCtrl.rooms
-                                      .map(
-                                        (r) => DropdownMenuItem<int>(
-                                          value: r['id'] as int,
-                                          child: Text(
-                                            r['room_name'] as String,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                            ),
+                                  items: [
+                                    const DropdownMenuItem<int>(
+                                      value: null,
+                                      child: Text(
+                                        'Pilih ruangan...',
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                    ),
+                                    ...roomCtrl.rooms.map(
+                                      (r) => DropdownMenuItem<int>(
+                                        value: r['id'] as int,
+                                        child: Text(
+                                          r['room_name'] as String,
+                                          style: const TextStyle(
+                                            color: Colors.white,
                                           ),
                                         ),
-                                      )
-                                      .toList(),
+                                      ),
+                                    ),
+                                  ],
                                   onChanged: (v) {
-                                    if (v != null) roomCtrl.selectRoom(v);
+                                    roomCtrl.selectedRoomId.value = v;
                                   },
                                 ),
                               ),
@@ -222,7 +202,7 @@ class _ScanViewState extends State<ScanView>
                         }),
                       ),
 
-                      // SCANNER
+                      /// === AREA SCAN ===
                       Expanded(
                         flex: 6,
                         child: Stack(
@@ -235,11 +215,17 @@ class _ScanViewState extends State<ScanView>
                                 opacity: processing ? 0.5 : 1.0,
                                 child: MobileScanner(
                                   controller: _cameraController,
-                                  onDetect: (BarcodeCapture capture) {
+                                  onDetect: (capture) {
                                     final roomId =
                                         roomCtrl.selectedRoomId.value;
-                                    if (roomId == 0 || roomId == null) {
-                                      _showRoomWarning();
+                                    if (roomId == null) {
+                                      Get.snackbar(
+                                        'Pilih Ruangan Dulu',
+                                        'Sebelum scan, pilih ruangan ujian terlebih dahulu.',
+                                        backgroundColor: Colors.redAccent
+                                            .withOpacity(0.8),
+                                        colorText: Colors.white,
+                                      );
                                       return;
                                     }
                                     scanCtrl.handleCapture(capture, roomId);
@@ -248,7 +234,7 @@ class _ScanViewState extends State<ScanView>
                               );
                             }),
 
-                            // FRAME SCANNER
+                            /// FRAME
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 400),
                               curve: Curves.easeOutCubic,
@@ -270,7 +256,7 @@ class _ScanViewState extends State<ScanView>
                               ),
                             ),
 
-                            // TORCH & SWITCH CAMERA
+                            /// TOMBOL TORCH DAN SWITCH
                             Positioned(
                               bottom: 24,
                               child: ClipRRect(
@@ -331,7 +317,7 @@ class _ScanViewState extends State<ScanView>
                         ),
                       ),
 
-                      // STATUS TEXT
+                      /// STATUS BAWAH
                       Expanded(
                         flex: 1,
                         child: Obx(() {
@@ -363,8 +349,8 @@ class _ScanViewState extends State<ScanView>
                       ),
                     ],
                   ),
-          ),
-        ),
+                ),
+              ),
       ),
     );
   }
