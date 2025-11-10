@@ -12,87 +12,91 @@ class ScanController extends GetxController {
 
   var isProcessing = false.obs;
 
-  // Untuk mencegah scan berulang cepat
+  // Mencegah scan ganda terlalu cepat
   final Map<int, DateTime> _recentScans = {};
   final duplicateThresholdSeconds = 3;
 
-  /// Fungsi utama pemrosesan barcode
+  // Fungsi utama ketika QR terdeteksi
   Future<void> handleBarcode(String code, int selectedRoomId) async {
     if (isProcessing.value) return;
     isProcessing.value = true;
 
     try {
-      // --- Tahap 1: Parsing QR ---
-      dynamic data;
-      try {
-        data = jsonDecode(code);
-      } catch (_) {
-        // Jika bukan JSON, anggap hanya berisi ID
-        data = {'student_id': int.tryParse(code.trim())};
-      }
+      if (code.trim().isEmpty) return;
 
-      final int? studentId = data['student_id'];
-      final int? qrRoomId = data['room_id']; // opsional di QR
+      int? studentId;
+
+      // 🧩 Coba parsing JSON atau angka murni
+      try {
+        final parsed = jsonDecode(code);
+        if (parsed is Map && parsed['student_id'] != null) {
+          studentId = int.tryParse(parsed['student_id'].toString());
+        } else if (parsed is int) {
+          studentId = parsed;
+        } else {
+          studentId = int.tryParse(code.trim());
+        }
+      } catch (_) {
+        studentId = int.tryParse(code.trim());
+      }
 
       if (studentId == null) {
         Get.snackbar(
           'QR Tidak Valid',
-          'Kode QR tidak mengandung ID siswa.',
-          backgroundColor: Colors.redAccent.withOpacity(0.8),
+          'Kode QR tidak berisi ID siswa yang valid.',
+          backgroundColor: Colors.redAccent.withOpacity(0.9),
           colorText: Colors.white,
         );
         return;
       }
 
-      // --- Tahap 2: Cegah duplikasi lokal ---
+      // ⏳ Cegah duplikasi lokal (scan cepat berulang)
       final now = DateTime.now();
       if (_recentScans.containsKey(studentId)) {
         final prev = _recentScans[studentId]!;
         if (now.difference(prev).inSeconds < duplicateThresholdSeconds) {
-          isProcessing.value = false;
           return;
         }
       }
       _recentScans[studentId] = now;
 
-      // --- Tahap 3: Validasi ruangan (jika ada di QR) ---
-      if (qrRoomId != null && qrRoomId != selectedRoomId) {
-        Get.snackbar(
-          'Ruangan Tidak Sesuai',
-          'QR ini untuk ruangan lain! Pilih ruangan yang benar sebelum scan.',
-          backgroundColor: Colors.orange.withOpacity(0.8),
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-        );
-        return;
-      }
-
-      // --- Tahap 4: Ambil data siswa dari database ---
+      // 🔍 Ambil data siswa dari Supabase
       final student = await supabase.getStudentById(studentId);
       if (student == null) {
-        Get.dialog(
-          AlertDialog(
-            title: const Text('Tidak ditemukan'),
-            content: Text('Siswa dengan ID $studentId tidak ditemukan.'),
-            actions: [
-              TextButton(onPressed: () => Get.back(), child: const Text('OK')),
-            ],
-          ),
+        Get.snackbar(
+          'Tidak Ditemukan',
+          'Siswa dengan ID $studentId tidak ada di database.',
+          backgroundColor: Colors.redAccent.withOpacity(0.9),
+          colorText: Colors.white,
         );
         return;
       }
 
-      // --- Tahap 5: Simpan absensi ---
+      final name = student['name'] ?? '-';
+      final kelas = student['class_name'] ?? '-';
+      final ruangan = student['room_name'] ?? '-';
+      final studentRoomId = student['room_id'];
+
+      // 🧠 Pastikan ruangan sesuai (konversi ke string untuk amannya)
+      if (studentRoomId?.toString() != selectedRoomId.toString()) {
+        Get.snackbar(
+          'Ruangan Tidak Sesuai',
+          'Siswa $name terdaftar di ruangan $ruangan.\n'
+              'Silakan pindah ke ruangan yang benar.',
+          backgroundColor: Colors.orange.withOpacity(0.9),
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4),
+        );
+        return;
+      }
+
+      // 📝 Jalankan fungsi insert attendance di Supabase
       final message = await supabase.insertAttendance(
         studentId: studentId,
         roomId: selectedRoomId,
       );
 
-      final name = student['name'] ?? '-';
-      final kelas = student['class_name'] ?? '-';
-      final ruangan = student['room_name'] ?? '-';
-
-      // --- Tahap 6: Tampilkan hasil ---
+      // 💬 Tampilkan dialog hasil
       if (message.contains('✅')) {
         Get.dialog(
           SuccessDialog(
@@ -111,11 +115,12 @@ class ScanController extends GetxController {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('❌ Error handleBarcode: $e\n$st');
       Get.snackbar(
-        'Error',
+        'Terjadi Kesalahan',
         e.toString(),
-        backgroundColor: Colors.redAccent.withOpacity(0.8),
+        backgroundColor: Colors.redAccent.withOpacity(0.9),
         colorText: Colors.white,
       );
     } finally {
@@ -123,7 +128,7 @@ class ScanController extends GetxController {
     }
   }
 
-  /// Fungsi pemanggil dari MobileScanner
+  // Dipanggil langsung dari MobileScanner widget
   Future<void> handleCapture(BarcodeCapture capture, int roomId) async {
     final code = scannerService.extractFromCapture(capture);
     if (code.isEmpty) return;
