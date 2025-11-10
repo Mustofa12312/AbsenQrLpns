@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -11,38 +12,68 @@ class ScanController extends GetxController {
 
   var isProcessing = false.obs;
 
-  // Cegah scan berulang cepat (3 detik)
+  // Untuk mencegah scan berulang cepat
   final Map<int, DateTime> _recentScans = {};
   final duplicateThresholdSeconds = 3;
 
-  Future<void> handleBarcode(String code, int roomId) async {
+  /// Fungsi utama pemrosesan barcode
+  Future<void> handleBarcode(String code, int selectedRoomId) async {
     if (isProcessing.value) return;
     isProcessing.value = true;
 
     try {
-      final id = int.tryParse(code.trim());
-      if (id == null) {
-        Get.snackbar('Scan gagal', 'Kode QR tidak valid');
+      // --- Tahap 1: Parsing QR ---
+      dynamic data;
+      try {
+        data = jsonDecode(code);
+      } catch (_) {
+        // Jika bukan JSON, anggap hanya berisi ID
+        data = {'student_id': int.tryParse(code.trim())};
+      }
+
+      final int? studentId = data['student_id'];
+      final int? qrRoomId = data['room_id']; // opsional di QR
+
+      if (studentId == null) {
+        Get.snackbar(
+          'QR Tidak Valid',
+          'Kode QR tidak mengandung ID siswa.',
+          backgroundColor: Colors.redAccent.withOpacity(0.8),
+          colorText: Colors.white,
+        );
         return;
       }
 
-      // Cegah duplikasi lokal
+      // --- Tahap 2: Cegah duplikasi lokal ---
       final now = DateTime.now();
-      if (_recentScans.containsKey(id)) {
-        final prev = _recentScans[id]!;
+      if (_recentScans.containsKey(studentId)) {
+        final prev = _recentScans[studentId]!;
         if (now.difference(prev).inSeconds < duplicateThresholdSeconds) {
+          isProcessing.value = false;
           return;
         }
       }
-      _recentScans[id] = now;
+      _recentScans[studentId] = now;
 
-      // Cek apakah siswa ada di database
-      final student = await supabase.getStudentById(id);
+      // --- Tahap 3: Validasi ruangan (jika ada di QR) ---
+      if (qrRoomId != null && qrRoomId != selectedRoomId) {
+        Get.snackbar(
+          'Ruangan Tidak Sesuai',
+          'QR ini untuk ruangan lain! Pilih ruangan yang benar sebelum scan.',
+          backgroundColor: Colors.orange.withOpacity(0.8),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
+      // --- Tahap 4: Ambil data siswa dari database ---
+      final student = await supabase.getStudentById(studentId);
       if (student == null) {
         Get.dialog(
           AlertDialog(
             title: const Text('Tidak ditemukan'),
-            content: Text('Siswa dengan ID $id tidak ditemukan.'),
+            content: Text('Siswa dengan ID $studentId tidak ditemukan.'),
             actions: [
               TextButton(onPressed: () => Get.back(), child: const Text('OK')),
             ],
@@ -51,17 +82,17 @@ class ScanController extends GetxController {
         return;
       }
 
-      // Insert absensi pakai Supabase Function
+      // --- Tahap 5: Simpan absensi ---
       final message = await supabase.insertAttendance(
-        studentId: id,
-        roomId: roomId,
+        studentId: studentId,
+        roomId: selectedRoomId,
       );
 
       final name = student['name'] ?? '-';
       final kelas = student['class_name'] ?? '-';
       final ruangan = student['room_name'] ?? '-';
 
-      // Tampilkan dialog hasil
+      // --- Tahap 6: Tampilkan hasil ---
       if (message.contains('✅')) {
         Get.dialog(
           SuccessDialog(
@@ -81,13 +112,18 @@ class ScanController extends GetxController {
         );
       }
     } catch (e) {
-      Get.snackbar('Error', e.toString());
+      Get.snackbar(
+        'Error',
+        e.toString(),
+        backgroundColor: Colors.redAccent.withOpacity(0.8),
+        colorText: Colors.white,
+      );
     } finally {
       isProcessing.value = false;
     }
   }
 
-  // Dipanggil dari MobileScanner
+  /// Fungsi pemanggil dari MobileScanner
   Future<void> handleCapture(BarcodeCapture capture, int roomId) async {
     final code = scannerService.extractFromCapture(capture);
     if (code.isEmpty) return;
