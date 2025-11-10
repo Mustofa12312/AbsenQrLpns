@@ -75,7 +75,7 @@ class _AttendanceListViewState extends State<AttendanceListView>
               elevation: 0,
               centerTitle: true,
               title: Text(
-                'Daftar Hadir Hari Ini',
+                'Daftar Hadir',
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -91,7 +91,7 @@ class _AttendanceListViewState extends State<AttendanceListView>
           opacity: _fadeAnim,
           child: Column(
             children: [
-              const SizedBox(height: 100),
+              const SizedBox(height: 95),
 
               // --- Dropdown filter ruangan ---
               Padding(
@@ -100,7 +100,7 @@ class _AttendanceListViewState extends State<AttendanceListView>
                   final rooms = roomCtrl.rooms;
                   if (rooms.isEmpty) {
                     return const SizedBox(
-                      height: 56,
+                      height: 53,
                       child: Center(child: CircularProgressIndicator()),
                     );
                   }
@@ -144,7 +144,7 @@ class _AttendanceListViewState extends State<AttendanceListView>
                 }),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
               // --- List Siswa Hadir ---
               Expanded(
@@ -180,7 +180,7 @@ class _AttendanceListViewState extends State<AttendanceListView>
                       color: Colors.cyanAccent,
                       onRefresh: () async => setState(() {}),
                       child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
                         itemCount: data.length,
                         itemBuilder: (context, index) {
                           final item = data[index];
@@ -198,7 +198,7 @@ class _AttendanceListViewState extends State<AttendanceListView>
                               milliseconds: 300 + (index * 40),
                             ),
                             child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              margin: const EdgeInsets.symmetric(vertical: 4),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
@@ -228,7 +228,7 @@ class _AttendanceListViewState extends State<AttendanceListView>
                                       contentPadding:
                                           const EdgeInsets.symmetric(
                                             horizontal: 16,
-                                            vertical: 8,
+                                            vertical: 3,
                                           ),
                                       leading: CircleAvatar(
                                         radius: 22,
@@ -237,6 +237,7 @@ class _AttendanceListViewState extends State<AttendanceListView>
                                         child: Text(
                                           no.toString(),
                                           style: const TextStyle(
+                                            fontSize: 16,
                                             color: Colors.black,
                                             fontWeight: FontWeight.bold,
                                           ),

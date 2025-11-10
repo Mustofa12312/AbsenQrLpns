@@ -97,7 +97,7 @@ class _AbsentListViewState extends State<AbsentListView>
           opacity: _fadeAnim,
           child: Column(
             children: [
-              const SizedBox(height: 100),
+              const SizedBox(height: 95),
 
               // --- Dropdown filter ruangan ---
               Padding(
@@ -203,7 +203,7 @@ class _AbsentListViewState extends State<AbsentListView>
                               milliseconds: 300 + (index * 40),
                             ),
                             child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              margin: const EdgeInsets.symmetric(vertical: 4),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
@@ -233,7 +233,7 @@ class _AbsentListViewState extends State<AbsentListView>
                                       contentPadding:
                                           const EdgeInsets.symmetric(
                                             horizontal: 16,
-                                            vertical: 8,
+                                            vertical: 2,
                                           ),
                                       leading: CircleAvatar(
                                         radius: 22,
