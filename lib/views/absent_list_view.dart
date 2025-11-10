@@ -163,7 +163,7 @@ class _AbsentListViewState extends State<AbsentListView>
                     if (snapshot.hasError) {
                       return Center(
                         child: Text(
-                          'Terjadi kesalahan: ${snapshot.error}',
+                          'Terjadi kesalahan : ${snapshot.error}',
                           style: GoogleFonts.poppins(color: Colors.white),
                         ),
                       );
