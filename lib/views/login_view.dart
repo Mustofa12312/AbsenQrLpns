@@ -54,9 +54,11 @@ class _LoginViewState extends State<LoginView>
     );
 
     _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.2),
+      begin: const Offset(0, 0.18),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    ).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() => _visible = true);
@@ -74,20 +76,21 @@ class _LoginViewState extends State<LoginView>
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
 
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 🌈 iPhone-style soft gradient background
+          // 🌈 Dynamic iOS-style background
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Color(0xFF0F2027), // soft sky blue
-                  Color(0xFF203A43), // iOS blue purple
-                  Color(0xFF2C5364), // soft pink-lavender
+                  Color(0xFF020617), // very dark
+                  Color(0xFF0F172A), // slate
+                  Color(0xFF1D3557), // blue
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -95,176 +98,49 @@ class _LoginViewState extends State<LoginView>
             ),
           ),
 
-          // ✨ floating blur/glow circles (for depth like iOS)
-          // NOTE: use boxShadow for glow; BoxDecoration has no blurRadius property.
+          // Floating blur blobs
           Positioned(
-            top: -80,
-            left: -50,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.08),
-                    blurRadius: 80,
-                    spreadRadius: 20,
-                  ),
-                ],
-              ),
+            top: -60,
+            left: -40,
+            child: _glassBlob(
+              width: 260,
+              height: 260,
+              color: const Color(0xFF38BDF8).withOpacity(0.35),
             ),
           ),
           Positioned(
-            bottom: -80,
-            right: -50,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.06),
-                    blurRadius: 80,
-                    spreadRadius: 18,
-                  ),
-                ],
-              ),
+            top: size.height * 0.2,
+            right: -80,
+            child: _glassBlob(
+              width: 280,
+              height: 280,
+              color: const Color(0xFFA855F7).withOpacity(0.35),
+            ),
+          ),
+          Positioned(
+            bottom: -70,
+            left: -30,
+            child: _glassBlob(
+              width: 240,
+              height: 240,
+              color: const Color(0xFF22C55E).withOpacity(0.30),
             ),
           ),
 
-          // 💎 Glassmorphic login card
-          Center(
-            child: AnimatedOpacity(
-              opacity: _visible ? 1 : 0,
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeInOut,
-              child: SlideTransition(
-                position: _slideAnim,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(30),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
-                    child: Container(
-                      width: width * 0.9,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.35),
-                          width: 1.2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.lock_rounded,
-                            size: 60,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(height: 12),
-
-                          Text(
-                            'Login Pengawas',
-                            style: GoogleFonts.poppins(
-                              fontSize: 26,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-
-                          Text(
-                            'Email & Password dari Tim LPNS',
-                            style: GoogleFonts.poppins(
-                              fontSize: 15,
-                              color: Colors.white.withOpacity(0.85),
-                              fontWeight: FontWeight.w500,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-
-                          const SizedBox(height: 30),
-
-                          // ✉️ Email
-                          _buildTextField(
-                            controller: emailCtrl,
-                            hint: 'Email',
-                            icon: Icons.email,
-                            obscure: false,
-                            onSubmit: (_) {},
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // 🔒 Password
-                          _buildTextField(
-                            controller: passCtrl,
-                            hint: 'Password',
-                            icon: Icons.lock,
-                            obscure: !showPassword,
-                            suffix: IconButton(
-                              icon: Icon(
-                                showPassword
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                                color: Colors.white.withOpacity(0.9),
-                              ),
-                              onPressed: () =>
-                                  setState(() => showPassword = !showPassword),
-                            ),
-                            onSubmit: (_) => login(),
-                          ),
-
-                          const SizedBox(height: 30),
-
-                          // 🔘 Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: loading ? null : login,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white.withOpacity(0.25),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                elevation: 8,
-                                shadowColor: Colors.white.withOpacity(0.3),
-                              ),
-                              child: loading
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.5,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : Text(
-                                      'Login',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 18,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ],
-                      ),
+          // Content
+          SafeArea(
+            child: Center(
+              child: AnimatedOpacity(
+                opacity: _visible ? 1 : 0,
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.easeInOut,
+                child: SlideTransition(
+                  position: _slideAnim,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 420),
+                      child: _buildGlassCard(width),
                     ),
                   ),
                 ),
@@ -276,6 +152,191 @@ class _LoginViewState extends State<LoginView>
     );
   }
 
+  // 💎 Glass card utama
+  Widget _buildGlassCard(double width) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(32),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+        child: Container(
+          width: width * 0.9,
+          padding: const EdgeInsets.fromLTRB(22, 20, 22, 26),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            gradient: LinearGradient(
+              colors: [
+                Colors.white.withOpacity(0.18),
+                Colors.white.withOpacity(0.08),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            border: Border.all(
+              width: 1.2,
+              color: Colors.white.withOpacity(0.55),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.25),
+                blurRadius: 24,
+                offset: const Offset(0, 14),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon & title
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.9),
+                      Colors.white.withOpacity(0.6),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.7),
+                      blurRadius: 16,
+                      spreadRadius: -4,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.lock_rounded, // ganti icon yang pasti ada
+                  size: 34,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              Text(
+                'Login Pengawas',
+                style: GoogleFonts.poppins(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 0.4,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Gunakan akun yang diberikan tim LPNS\nuntuk mengakses dashboard absensi.',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: Colors.white.withOpacity(0.85),
+                  fontWeight: FontWeight.w400,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 26),
+
+              // ✉️ Email
+              _buildTextField(
+                controller: emailCtrl,
+                hint: 'Email pengawas',
+                icon: Icons.mail_rounded,
+                obscure: false,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                onSubmit: (_) {},
+              ),
+
+              const SizedBox(height: 16),
+
+              // 🔒 Password
+              _buildTextField(
+                controller: passCtrl,
+                hint: 'Password',
+                icon: Icons.lock_rounded,
+                obscure: !showPassword,
+                textInputAction: TextInputAction.done,
+                onSubmit: (_) => login(),
+                suffix: IconButton(
+                  icon: Icon(
+                    showPassword
+                        ? Icons.visibility_rounded
+                        : Icons.visibility_off_rounded,
+                    color: Colors.white.withOpacity(0.95),
+                    size: 20,
+                  ),
+                  onPressed: () =>
+                      setState(() => showPassword = !showPassword),
+                ),
+              ),
+
+              const SizedBox(height: 22),
+
+              // 🔘 Button login
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: loading ? null : login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white.withOpacity(0.85),
+                    foregroundColor: const Color(0xFF020617),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: loading
+                      ? SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Colors.black,
+                            ),
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Masuk',
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 18,
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+              Text(
+                'LPNS • Sistem Absensi Ujian',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: Colors.white.withOpacity(0.85),
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 🔤 TextField builder
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
@@ -283,30 +344,77 @@ class _LoginViewState extends State<LoginView>
     required bool obscure,
     Widget? suffix,
     required Function(String) onSubmit,
+    TextInputType keyboardType = TextInputType.text,
+    TextInputAction textInputAction = TextInputAction.next,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscure,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      onSubmitted: onSubmit,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-        prefixIcon: Icon(icon, color: Colors.white),
+        hintStyle: GoogleFonts.poppins(
+          color: Colors.white.withOpacity(0.6),
+          fontSize: 14,
+        ),
+        prefixIcon: Icon(
+          icon,
+          color: Colors.white.withOpacity(0.95),
+          size: 20,
+        ),
         suffixIcon: suffix,
         filled: true,
-        fillColor: Colors.white.withOpacity(0.15),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+        fillColor: Colors.white.withOpacity(0.08),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.35)),
         ),
-        focusedBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(20)),
-          borderSide: BorderSide(color: Colors.white, width: 2),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.30)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(
+            color: Colors.white,
+            width: 1.6,
+          ),
         ),
       ),
-      style: const TextStyle(color: Colors.white),
-      textInputAction: TextInputAction.next,
-      onSubmitted: onSubmit,
+      style: GoogleFonts.poppins(
+        color: Colors.white,
+        fontSize: 14,
+      ),
+    );
+  }
+
+  // 🔮 Blob dekorasi background
+  Widget _glassBlob({
+    required double width,
+    required double height,
+    required Color color,
+  }) {
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                color,
+                color.withOpacity(0.05),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

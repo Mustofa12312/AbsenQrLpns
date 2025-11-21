@@ -16,13 +16,12 @@ class AbsentListView extends StatefulWidget {
 class _AbsentListViewState extends State<AbsentListView>
     with SingleTickerProviderStateMixin {
   final supabase = SupabaseService.instance;
-  final RoomController roomCtrl = Get.find();
+  final RoomController roomCtrl = Get.find<RoomController>();
 
   int? selectedRoomId;
   late AnimationController _controller;
   late Animation<double> _fadeAnim;
 
-  @override
   @override
   void initState() {
     super.initState();
@@ -36,7 +35,6 @@ class _AbsentListViewState extends State<AbsentListView>
 
     _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
 
-    // Jalankan animasi setelah frame pertama dirender
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _controller.forward();
     });
@@ -123,7 +121,7 @@ class _AbsentListViewState extends State<AbsentListView>
                           ),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: DropdownButtonFormField<int>(
+                        child: DropdownButtonFormField<int?>(
                           value: selectedRoomId,
                           dropdownColor: Colors.black.withOpacity(0.6),
                           decoration: const InputDecoration(
@@ -134,7 +132,7 @@ class _AbsentListViewState extends State<AbsentListView>
                           style: GoogleFonts.poppins(color: Colors.white),
                           iconEnabledColor: Colors.white70,
                           items: rooms.map((r) {
-                            return DropdownMenuItem<int>(
+                            return DropdownMenuItem<int?>(
                               value: r['id'] as int,
                               child: Text(
                                 r['room_name'] as String,
@@ -198,7 +196,8 @@ class _AbsentListViewState extends State<AbsentListView>
                               item['room_name'] ?? item['room_name'] ?? '-';
 
                           return AnimatedOpacity(
-                            opacity: 1,
+                            // ⬅️ INI WAJIB 0.0 – 1.0
+                            opacity: 1.0,
                             duration: Duration(
                               milliseconds: 300 + (index * 40),
                             ),

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../controllers/nav_provider.dart';
 import 'home_view.dart';
 import 'attendance_list_view.dart';
@@ -49,7 +50,7 @@ class _MainViewState extends State<MainView>
     super.dispose();
   }
 
-  // small helper to trigger a quick "pop" feedback
+  // efek "pop" kecil ketika ganti tab
   void _popEffect() {
     _controller.forward(from: 0.0);
   }
@@ -58,7 +59,7 @@ class _MainViewState extends State<MainView>
   Widget build(BuildContext context) {
     final nav = context.watch<NavProvider>();
 
-    // subtle ocean-neon background (you can swap gradient easily)
+    // background ocean-neon
     const backgroundGradient = LinearGradient(
       colors: [Color(0xFF101820), Color(0xFF1E3C72), Color(0xFF2A5298)],
       begin: Alignment.topLeft,
@@ -81,14 +82,15 @@ class _MainViewState extends State<MainView>
             decoration: const BoxDecoration(gradient: backgroundGradient),
           ),
 
-          // subtle neon particles (non-interactive painter)
+          // neon particles (static)
           Positioned.fill(
             child: IgnorePointer(
               child: CustomPaint(painter: _NeonParticlePainter()),
             ),
           ),
 
-          // page transition: AnimatedSwitcher with fade+scale+slide
+          // HANYA halaman aktif yang dirender.
+          // Saat index berubah, page lama di-dispose → ScanView ikut mati.
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 520),
             switchInCurve: Curves.easeOutCubic,
@@ -105,6 +107,7 @@ class _MainViewState extends State<MainView>
                 begin: 0.985,
                 end: 1.0,
               ).animate(animation);
+
               return FadeTransition(
                 opacity: animation,
                 child: SlideTransition(
@@ -113,10 +116,11 @@ class _MainViewState extends State<MainView>
                 ),
               );
             },
-            child: IndexedStack(
+            child: KeyedSubtree(
+              // kunci berdasarkan index supaya AnimatedSwitcher
+              // tahu ini "halaman baru"
               key: ValueKey<int>(nav.index),
-              index: nav.index,
-              children: pages,
+              child: pages[nav.index],
             ),
           ),
         ],
@@ -132,7 +136,7 @@ class _MainViewState extends State<MainView>
             child: Stack(
               alignment: Alignment.bottomCenter,
               children: [
-                // neon glow below the bar
+                // neon glow di bawah bar
                 Positioned(
                   bottom: 6,
                   left: 0,
@@ -160,7 +164,7 @@ class _MainViewState extends State<MainView>
                   ),
                 ),
 
-                // the glass nav container
+                // glass nav container
                 ClipRRect(
                   borderRadius: BorderRadius.circular(28),
                   child: BackdropFilter(
@@ -186,32 +190,28 @@ class _MainViewState extends State<MainView>
                         data: NavigationBarThemeData(
                           backgroundColor: Colors.transparent,
                           indicatorColor: Colors.white.withOpacity(0.14),
-                          labelTextStyle:
-                              WidgetStateProperty.resolveWith<TextStyle>((
-                                states,
-                              ) {
-                                return TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize:
-                                      states.contains(WidgetState.selected)
-                                      ? 13
-                                      : 12,
-                                  fontWeight:
-                                      states.contains(WidgetState.selected)
-                                      ? FontWeight.w600
-                                      : FontWeight.w500,
-                                  color: states.contains(WidgetState.selected)
-                                      ? Colors.white
-                                      : Colors.white70,
-                                );
-                              }),
+                          labelTextStyle: WidgetStateProperty.resolveWith((
+                            states,
+                          ) {
+                            final selected = states.contains(
+                              WidgetState.selected,
+                            );
+                            return TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: selected ? 13 : 12,
+                              fontWeight: selected
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
+                              color: selected ? Colors.white : Colors.white70,
+                            );
+                          }),
                         ),
                         child: NavigationBar(
                           height: 64,
                           elevation: 0,
                           selectedIndex: nav.index,
                           onDestinationSelected: (int idx) {
-                            _popEffect(); // trigger pop animation
+                            _popEffect();
                             nav.change(idx);
                           },
                           destinations: const [
@@ -274,9 +274,7 @@ class _MainViewState extends State<MainView>
   }
 }
 
-// --- Neon particle painter (soft, static-ish background)
-//    Keep it lightweight: draws several soft blurred circles.
-//    For animated particles you'd want a stateful painter with animation controller.
+// --- Neon particle painter (background dekoratif) ---
 class _NeonParticlePainter extends CustomPainter {
   final Random _rnd = Random();
 
@@ -285,7 +283,6 @@ class _NeonParticlePainter extends CustomPainter {
     final paint = Paint()
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24);
 
-    // draw a handful of soft circles, deterministic-ish for stability
     final seeds = [12, 6, 9, 5, 8, 3, 7];
     for (int i = 0; i < seeds.length; i++) {
       final r = 20.0 + (i * 6.0);

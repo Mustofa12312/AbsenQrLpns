@@ -70,18 +70,18 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             color: Colors.white,
           ),
         ),
-        backgroundColor: Colors.white.withOpacity(0.08),
+        backgroundColor: Colors.white.withOpacity(0.04),
         elevation: 0,
         centerTitle: true,
         flexibleSpace: ClipRRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Container(color: Colors.white.withOpacity(0.05)),
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Container(color: Colors.black.withOpacity(0.25)),
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
+            icon: const Icon(Icons.logout_rounded, color: Colors.white),
             tooltip: 'Logout',
             onPressed: logout,
           ),
@@ -89,25 +89,52 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       ),
       body: Stack(
         children: [
-          // 🌈 Background ala iPhone
+          // 🌈 Latar belakang gradien + glow blob
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Color(0xFF0F2027), // soft blue
-                  Color(0xFF203A43), // muted indigo
-                  Color(0xFF2C5364), // lavender blue
+                  Color(0xFF020617),
+                  Color(0xFF071426),
+                  Color(0xFF102A43),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
             ),
           ),
+          Positioned(
+            top: -80,
+            right: -60,
+            child: _blurBlob(
+              width: 240,
+              height: 240,
+              color: const Color(0xFF38BDF8).withOpacity(0.45),
+            ),
+          ),
+          Positioned(
+            top: 180,
+            left: -80,
+            child: _blurBlob(
+              width: 260,
+              height: 260,
+              color: const Color(0xFFA855F7).withOpacity(0.35),
+            ),
+          ),
+          Positioned(
+            bottom: -80,
+            right: -40,
+            child: _blurBlob(
+              width: 220,
+              height: 220,
+              color: const Color(0xFF22C55E).withOpacity(0.3),
+            ),
+          ),
 
-          // 🌫️ Konten utama
+          // 🌫️ Konten utama + pull to refresh
           RefreshIndicator(
             onRefresh: () async => await summaryProvider.fetchSummary(),
-            child: (_fadeAnim != null)
+            child: _fadeAnim != null
                 ? FadeTransition(
                     opacity: _fadeAnim!,
                     child: _buildContent(hari),
@@ -121,112 +148,268 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
 
   Widget _buildContent(String hari) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 100, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 110, 16, 24),
       children: [
+        // Header hari + subtitle
         Text(
-          'Hari Ini ($hari)',
+          'Hari Ini',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            color: Colors.white.withOpacity(0.8),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          hari,
           style: GoogleFonts.poppins(
             fontSize: 22,
             color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
         ),
+        const SizedBox(height: 8),
+        Text(
+          'Ringkasan absensi ujian hari ini.',
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            color: Colors.white.withOpacity(0.8),
+          ),
+        ),
         const SizedBox(height: 20),
+
         if (summaryProvider.isLoading)
-          const Center(child: CircularProgressIndicator(color: Colors.white)),
-        if (summaryProvider.error != null)
-          Center(
-            child: Text(
-              'Terjadi kesalahan: ${summaryProvider.error}',
-              style: GoogleFonts.poppins(
-                color: Colors.redAccent,
-                fontWeight: FontWeight.w500,
-              ),
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.only(top: 24.0),
+              child: CircularProgressIndicator(color: Colors.white),
             ),
           ),
+
+        if (summaryProvider.error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 16.0),
+            child: _buildErrorCard(summaryProvider.error!),
+          ),
+
         if (!summaryProvider.isLoading && summaryProvider.error == null)
           Column(
             children: [
               _buildGlassCard(
-                icon: Icons.check_circle,
-                title: 'Hadir: ${summaryProvider.hadir} siswa',
-                color: const Color(0xFF8EF6E4),
-                iconColor: const Color(0xFF26E1A8),
+                icon: Icons.check_circle_rounded,
+                title: 'Hadir',
+                value: '${summaryProvider.hadir} siswa',
+                gradientColors: const [Color(0xFF22C55E), Color(0xFF4ADE80)],
               ),
               _buildGlassCard(
                 icon: Icons.cancel_rounded,
-                title: 'Tidak Hadir: ${summaryProvider.tidakHadir} siswa',
-                color: const Color(0xFFFFB6B9),
-                iconColor: const Color(0xFFFF6B6B),
+                title: 'Tidak Hadir',
+                value: '${summaryProvider.tidakHadir} siswa',
+                gradientColors: const [Color(0xFFFB7185), Color(0xFFF97373)],
               ),
               _buildGlassCard(
-                icon: Icons.meeting_room,
-                title: 'Ruangan Sudah Absen: ${summaryProvider.ruanganAktif}',
-                color: const Color(0xFFB5EAEA),
-                iconColor: const Color(0xFF6DD5FA),
+                icon: Icons.meeting_room_rounded,
+                title: 'Ruangan Sudah Absen',
+                value: summaryProvider.ruanganAktif.toString(),
+                gradientColors: const [Color(0xFF38BDF8), Color(0xFF60A5FA)],
               ),
             ],
           ),
-        const SizedBox(height: 40),
+
+        const SizedBox(height: 32),
+
         Text(
-          'Data Ruangan:',
+          'Data Ruangan',
           style: GoogleFonts.poppins(
             fontSize: 18,
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withOpacity(0.94),
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
-          ),
-          child: Text(
-            'Dropdown Ruangan (coming soon...)',
-            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 16),
+        const SizedBox(height: 12),
+
+        // Placeholder info ruangan (logika tidak diubah)
+        ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                color: Colors.white.withOpacity(0.08),
+                border: Border.all(color: Colors.white.withOpacity(0.18)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.16),
+                    ),
+                    child: const Icon(
+                      Icons.view_list_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      'Dropdown Ruangan (coming soon...)',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white70,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
+  /// Kartu error ringkas
+  Widget _buildErrorCard(String error) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            color: const Color(0xFFEF4444).withOpacity(0.18),
+            border: Border.all(
+              color: Colors.redAccent.withOpacity(0.6),
+              width: 0.8,
+            ),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.error_outline_rounded, color: Colors.white),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Terjadi kesalahan: $error',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Kartu glass untuk ringkasan (Hadir / Tidak Hadir / Ruangan)
   Widget _buildGlassCard({
     required IconData icon,
     required String title,
-    required Color color,
-    required Color iconColor,
+    required String value,
+    required List<Color> gradientColors,
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(24),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: ListTile(
-            leading: Icon(icon, color: iconColor, size: 30),
-            title: Text(
-              title,
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
+          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              color: Colors.white.withOpacity(0.06),
+              border: Border.all(color: Colors.white.withOpacity(0.22)),
             ),
+            child: Row(
+              children: [
+                // lingkaran gradient icon
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: gradientColors,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(icon, color: Colors.white, size: 24),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: Colors.white.withOpacity(0.8),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        value,
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.white54,
+                  size: 22,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Blob dekoratif blur untuk background
+  Widget _blurBlob({
+    required double width,
+    required double height,
+    required Color color,
+  }) {
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(colors: [color, color.withOpacity(0.05)]),
           ),
         ),
       ),
